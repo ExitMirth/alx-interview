@@ -1,45 +1,60 @@
 #!/usr/bin/python3
-"""This script reads lines from stdin in this format
-<IP Address> - [<date>] "GET /projects/260 HTTP/1.1" <status code> <file size>
-and after every 10 lines or keyboard interruption
-it prints File size: <total size>
-<status code>: <number> for every status code"""
+"""
+Log parsing script.
+"""
 
-from sys import stdin
-import re
+import sys
 
-
-def valid_format(line):
-    """checks if the line have a valid format"""
-    pattern = r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) - '
-    r'\[([^\]]+)\] "GET \/projects\/260 HTTP\/1\.1" (\d{3}) (\d+)$'
-    match = re.match(pattern, line)
-    if match:
-        return True
-    return False
-
-
-try:
-    my_dict = {}
-    total_size = 0
-    for i, line in enumerate(stdin, start=1):
-        line = line.strip()
-        if not valid_format(line):
-            continue
-        parts = line.split(" ")
-        total_size += int(parts[-1])
-        if parts[-2] not in my_dict:
-            my_dict[parts[-2]] = 1
-        else:
-            my_dict[parts[-2]] += 1
-        my_dict = dict(sorted(my_dict.items()))
-        if i % 10 == 0:
-            print("File size: {}".format(total_size))
-            for key, val in my_dict.items():
-                print("{}: {}".format(key, val))
-except Exception as err:
-    pass
-finally:
+def print_stats(total_size, status_codes):
+    """
+    Print statistics.
+    """
     print("File size: {}".format(total_size))
-    for key, val in my_dict.items():
-        print("{}: {}".format(key, val))
+    for code, count in sorted(status_codes.items()):
+        if count > 0:
+            print("{}: {}".format(code, count))
+
+
+def parse_line(line, total_size, status_codes):
+    """
+    Parse a log line and update statistics.
+    """
+    try:
+        parts = line.split()
+        file_size = int(parts[-1])
+        status_code = int(parts[-2])
+        total_size += file_size
+
+        if status_code in status_codes:
+            status_codes[status_code] += 1
+
+    except (ValueError, IndexError):
+        pass
+
+    return total_size, status_codes
+
+
+def main():
+    """
+    Main function for log parsing.
+    """
+    total_size = 0
+    status_codes = {200: 0, 301: 0, 400: 0, 401: 0, 403: 0, 404: 0, 405: 0, 500: 0}
+    line_count = 0
+
+    try:
+        for line in sys.stdin:
+            total_size, status_codes = parse_line(line, total_size, status_codes)
+            line_count += 1
+
+            if line_count % 10 == 0:
+                print_stats(total_size, status_codes)
+
+    except KeyboardInterrupt:
+        pass
+
+    finally:
+        print_stats(total_size, status_codes)
+
+if __name__ == "__main__":
+    main()
