@@ -1,37 +1,45 @@
 #!/usr/bin/python3
-'''a script that reads stdin line by line and computes metrics'''
+"""This script reads lines from stdin in this format
+<IP Address> - [<date>] "GET /projects/260 HTTP/1.1" <status code> <file size>
+and after every 10 lines or keyboard interruption
+it prints File size: <total size>
+<status code>: <number> for every status code"""
+
+from sys import stdin
+import re
 
 
-import sys
+def valid_format(line):
+    """checks if the line have a valid format"""
+    pattern = r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) - '
+    r'\[([^\]]+)\] "GET \/projects\/260 HTTP\/1\.1" (\d{3}) (\d+)$'
+    match = re.match(pattern, line)
+    if match:
+        return True
+    return False
 
-cache = {'200': 0, '301': 0, '400': 0, '401': 0,
-         '403': 0, '404': 0, '405': 0, '500': 0}
-total_size = 0
-counter = 0
 
 try:
-    for line in sys.stdin:
-        line_list = line.split(" ")
-        if len(line_list) > 4:
-            code = line_list[-2]
-            size = int(line_list[-1])
-            if code in cache.keys():
-                cache[code] += 1
-            total_size += size
-            counter += 1
-
-        if counter == 10:
-            counter = 0
-            print('File size: {}'.format(total_size))
-            for key, value in sorted(cache.items()):
-                if value != 0:
-                    print('{}: {}'.format(key, value))
-
+    my_dict = {}
+    total_size = 0
+    for i, line in enumerate(stdin, start=1):
+        line = line.strip()
+        if not valid_format(line):
+            continue
+        parts = line.split(" ")
+        total_size += int(parts[-1])
+        if parts[-2] not in my_dict:
+            my_dict[parts[-2]] = 1
+        else:
+            my_dict[parts[-2]] += 1
+        my_dict = dict(sorted(my_dict.items()))
+        if i % 10 == 0:
+            print("File size: {}".format(total_size))
+            for key, val in my_dict.items():
+                print("{}: {}".format(key, val))
 except Exception as err:
     pass
-
 finally:
-    print('File size: {}'.format(total_size))
-    for key, value in sorted(cache.items()):
-        if value != 0:
-            print('{}: {}'.format(key, value))
+    print("File size: {}".format(total_size))
+    for key, val in my_dict.items():
+        print("{}: {}".format(key, val))
