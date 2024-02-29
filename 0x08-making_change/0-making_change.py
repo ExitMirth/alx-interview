@@ -1,25 +1,25 @@
 #!/usr/bin/python3
-""" Change making """
+""" making change challenge """
 
 
 def makeChange(coins, total):
-    """ Generate changes needed to reach total
-
-    Args:
-        coins ([List]): [List of Coins available]
-        total ([int]): [total amount needed]
     """
+    make change challenge
+    """
+
     if total <= 0:
         return 0
-    check = 0
-    temp = 0
+
     coins.sort(reverse=True)
-    for i in coins:
-        while check < total:
-            check += i
-            temp += 1
-        if check == total:
-            return temp
-        check -= i
-        temp -= 1
+    sum = 0
+    i = 0
+    counter = 0
+    num_coins = len(coins)
+    while sum < total and i < num_coins:
+        while coins[i] <= total - sum:
+            sum += coins[i]
+            counter += 1
+            if sum == total:
+                return counter
+        i += 1
     return -1
